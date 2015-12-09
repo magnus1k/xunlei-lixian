@@ -1,10 +1,11 @@
-
+# -*- coding: utf-8 -*-
 __all__ = ['download_tool', 'get_tool']
 
 from lixian_config import *
 import subprocess
 import urllib2
 import os.path
+import xmlrpclib
 
 download_tools = {}
 
@@ -112,6 +113,48 @@ class Aria2DownloadTool:
 		if exit_code != 0:
 			raise Exception('aria2c exited abnormally')
 
+@download_tool('a2')
+class Aria2DownloadTool:
+	def __init__(self, **kwargs):
+		self.gdriveid = str(kwargs['client'].get_gdriveid())
+		self.url = kwargs['url']
+		self.path = kwargs['path']
+		self.size = kwargs['size']
+		self.resuming = kwargs.get('resuming')
+	def finished(self):
+		return True
+		print(os.path.getsize(self.path))
+		assert os.path.getsize(self.path) <= self.size, 'existing file (%s) bigger than expected (%s)' % (os.path.getsize(self.path), self.size)
+		return os.path.getsize(self.path) == self.size and not os.path.exists(self.path + '.aria2')
+	def __call__(self):
+		gdriveid = self.gdriveid
+		download_url = self.url
+		path = self.path
+		resuming = self.resuming
+		folder = os.path.dirname(path)
+		filename = os.path.basename(path)
+		aria2_opts = dict(header=['Cookie: gdriveid='+str(gdriveid)],out=filename.decode('GBK'))
+		if folder:
+			aria2_opts['dir']=folder
+		# if resuming:
+		# 	aria2_opts.append('-c')
+		server = xmlrpclib.ServerProxy('http://localhost:6800/rpc')
+		val = server.aria2.addUri([download_url],aria2_opts)
+		exit_code = 0
+		if exit_code != 0:
+			raise Exception('aria2c exited abnormally')
+
+# def a2_download(client, download_url, path, resuming=False):
+# 	server = xmlrpclib.ServerProxy('http://localhost:6800/rpc')
+# 	folder = os.path.dirname(path)
+# 	filename = os.path.basename(path)
+# 	filename = "摩登家庭.Modern.Family.S07E08.中英字幕.HDTVrip.1024X576.x264.mp4"
+# 	print folder,filename
+# 	val = server.aria2.addUri([download_url],dict(header=['Cookie: gdriveid='+str(client.get_gdriveid())],out=filename,dir=folder))
+# 	exit_code = 0
+# 	print(val)
+
+
 @download_tool('axel')
 def axel_download(client, download_url, path, resuming=False):
 	gdriveid = str(client.get_gdriveid())
@@ -124,5 +167,3 @@ def axel_download(client, download_url, path, resuming=False):
 
 def get_tool(name):
 	return download_tools[name]
-
-

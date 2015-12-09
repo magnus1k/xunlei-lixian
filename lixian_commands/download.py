@@ -98,7 +98,8 @@ def download_file(client, path, task, options):
 		while checked < 10:
 			download1(download, path)
 			if download.finished():
-				break
+				# break
+				return
 			else:
 				checked += 1
 		assert os.path.getsize(path) == size, 'incorrect downloaded file size (%s != %s)' % (os.path.getsize(path), size)
@@ -108,6 +109,8 @@ def download_file(client, path, task, options):
 		if mini_hash and resuming and verify_mini_hash(path, task):
 			return
 		download1_checked(client, url, path, size)
+		if no_hash:
+			return
 		verify = verify_basic_hash if no_hash else verify_hash
 		if not verify(path, task):
 			with colors(options.get('colors')).yellow():
